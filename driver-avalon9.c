@@ -146,6 +146,19 @@ uint32_t cpm_table[] =
 	0x0c06e483
 };
 
+/*700-900*/
+uint32_t cpm_table2[] =
+{
+	0x0c072503, 	//712.5
+	0x0c076503, 	//737.5
+	0x0c07a503, 	//765.5
+	0x0c07e503, 	//787.5
+	0x0c082503, 	//812.5
+	0x0c086503, 	//837.5
+	0x0c08a503, 	//865.5
+	0x0c08e503, 	//887.5
+};
+
 struct avalon9_dev_description avalon9_dev_table[] = {
 	{
 		"921",
@@ -169,7 +182,10 @@ struct avalon9_dev_description avalon9_dev_table[] = {
 
 static uint32_t api_get_cpm(uint32_t freq)
 {
-	return cpm_table[freq / 25];
+	if (freq % 25 == 0)
+		return cpm_table[freq / 25];
+	else
+		return cpm_table2[(freq - 712) / 25];
 }
 
 static uint32_t encode_voltage(int volt_level)
@@ -654,7 +670,7 @@ static int decode_pkg(struct cgpu_info *avalon9, struct avalon9_ret *ar, int mod
 		} else {
 			for (i = 0; i < AVA9_DEFAULT_PLL_CNT; i++) {
 				memcpy(&tmp, ar->data + i * 4, 4);
-				info->get_frequency[modular_id][ar->idx][i] = be32toh(tmp);
+				info->set_frequency[modular_id][ar->idx][i] = be32toh(tmp);
 			}
 		}
 		break;
@@ -702,7 +718,30 @@ static int decode_pkg(struct cgpu_info *avalon9, struct avalon9_ret *ar, int mod
 			for (i = 0; i < AVA9_DEFAULT_PLL_CNT; i++) {
 				memcpy(&tmp, ar->data + 8 + i * 2, 2);
 				info->get_asic[modular_id][miner_id][asic_id][2 + i] = be16toh(tmp);
-			}
+			}			
+		}
+		break;
+	case AVA9_P_STATUS_ASIC_PLL:
+		{
+			int miner_id;
+			int asic_id;
+			uint16_t freq;
+
+			if (!info->asic_count[modular_id])
+				break;
+
+			miner_id = ar->idx / info->asic_count[modular_id];
+			asic_id = ar->idx % info->asic_count[modular_id];
+
+			applog(LOG_DEBUG, "%s-%d-%d: AVA9_P_STATUS_ASIC %d-%d",
+						avalon9->drv->name, avalon9->device_id, modular_id,
+						miner_id, asic_id);
+
+			for (i = 0; i < AVA9_DEFAULT_PLL_CNT; i++) {
+				memcpy(&freq, ar->data + i * 2, 2);
+				info->get_frequency[modular_id][miner_id][asic_id][i] = be16toh(freq);
+				//applog(LOG_ERR, "***PLL %d : %d", i, info->get_frequency[modular_id][miner_id][asic_id][i]);
+			}			
 		}
 		break;
 	case AVA9_P_STATUS_PVT_RO:
@@ -1710,12 +1749,13 @@ static void avalon9_set_voltage_level(struct cgpu_info *avalon9, int addr, unsig
 		avalon9_iic_xfer_pkg(avalon9, addr, &send_pkg, NULL);
 }
 
-static void avalon9_set_freq(struct cgpu_info *avalon9, int addr, int miner_id, unsigned int freq[])
+static void avalon9_set_freq(struct cgpu_info *avalon9, int addr, int miner_id, int asic_id, unsigned int freq[])
 {
 	struct avalon9_info *info = avalon9->device_data;
 	struct avalon9_pkg send_pkg;
 	uint32_t tmp, f;
 	uint8_t i;
+	uint8_t miner_asic;
 
 	memset(send_pkg.data, 0, AVA9_P_DATA_LEN);
 	for (i = 0; i < AVA9_DEFAULT_PLL_CNT; i++) {
@@ -1732,12 +1772,17 @@ static void avalon9_set_freq(struct cgpu_info *avalon9, int addr, int miner_id, 
 	tmp = AVA9_ASIC_TIMEOUT_CONST / f * 83 / 100;
 	tmp = be32toh(tmp);
 	memcpy(send_pkg.data + AVA9_DEFAULT_PLL_CNT * 4, &tmp, 4);
+
+	miner_asic = ((miner_id & 0x07) << 5) | (asic_id & 0x1f);
+
+	applog(LOG_ERR,"******raw:%u miner:%u asic:%u", miner_asic, miner_id, asic_id);
+
 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq miner %x-%x",
 			avalon9->drv->name, avalon9->device_id, addr,
 			miner_id, be32toh(tmp));
 
 	/* Package the data */
-	avalon9_init_pkg(&send_pkg, AVA9_P_SET_PLL, miner_id + 1, info->miner_count[addr]);
+	avalon9_init_pkg(&send_pkg, AVA9_P_SET_PLL, miner_asic, info->miner_count[addr]);
 
 	if (addr == AVA9_MODULE_BROADCAST)
 		avalon9_send_bc_pkgs(avalon9, &send_pkg);
@@ -2056,7 +2101,7 @@ static int64_t avalon9_scanhash(struct thr_info *thr)
 			cg_wlock(&info->update_lock);
 			avalon9_set_voltage_level(avalon9, i, info->set_voltage_level[i]);
 			for (j = 0; j < info->miner_count[i]; j++)
-				avalon9_set_freq(avalon9, i, j, info->set_frequency[i][j]);
+				avalon9_set_freq(avalon9, i, j, 0, info->set_frequency[i][j]);
 
 			if (opt_avalon9_smart_speed)
 				avalon9_set_ss_param(avalon9, i);
@@ -2111,7 +2156,7 @@ static float avalon9_hash_cal(struct cgpu_info *avalon9, int modular_id)
 	for (i = 0; i < info->miner_count[modular_id]; i++) {
 		for (j = 0; j < info->asic_count[modular_id]; j++) {
 			for (k = 0; k < AVA9_DEFAULT_PLL_CNT; k++)
-				mhsmm += (info->get_asic[modular_id][i][j][2 + k] * info->get_frequency[modular_id][i][k]);
+				mhsmm += (info->get_asic[modular_id][i][j][2 + k] * info->get_frequency[modular_id][i][j][k]);
 		}
 	}
 
@@ -2287,7 +2332,7 @@ static struct api_data *avalon9_api_stats(struct cgpu_info *avalon9)
 				sprintf(buf, " SF%d[", j);
 				strcat(statbuf, buf);
 				for (k = 0; k < AVA9_DEFAULT_PLL_CNT; k++) {
-					sprintf(buf, "%d ", info->get_frequency[i][j][k]);
+					sprintf(buf, "%d ", info->set_frequency[i][j][k]);
 					strcat(statbuf, buf);
 				}
 
@@ -2354,6 +2399,34 @@ static struct api_data *avalon9_api_stats(struct cgpu_info *avalon9)
 
 			int l;
 			/* i: modular, j: miner, k:asic, l:value */
+			for (j = 0; j < info->miner_count[i]; j++) {
+				for (l = 0; l < AVA9_DEFAULT_PLL_CNT; l++) {
+					sprintf(buf, " GF%d_%d[", j, l);
+					strcat(statbuf, buf);
+					for (k = 0; k < info->asic_count[i]; k++) {
+						sprintf(buf, "%3d ", info->get_frequency[i][j][k][l]);
+						strcat(statbuf, buf);
+					}
+
+					statbuf[strlen(statbuf) - 1] = ']';
+					statbuf[strlen(statbuf)] = '\0';
+				}
+			}
+
+			for (j = 0; j < info->miner_count[i]; j++) {
+				for (l = 0; l < AVA9_DEFAULT_PLL_CNT; l++) {
+					sprintf(buf, " PLL%d_%d[", j, l);
+					strcat(statbuf, buf);
+					for (k = 0; k < info->asic_count[i]; k++) {
+						sprintf(buf, "%3d ", info->get_asic[i][j][k][2 + l]);
+						strcat(statbuf, buf);
+					}
+
+					statbuf[strlen(statbuf) - 1] = ']';
+					statbuf[strlen(statbuf)] = '\0';
+				}
+			}
+
 			for (l = 0; l < 2; l++) {
 				for (j = 0; j < info->miner_count[i]; j++) {
 					sprintf(buf, " C_%02d_%02d[", j, l);
@@ -2373,7 +2446,7 @@ static struct api_data *avalon9_api_stats(struct cgpu_info *avalon9)
 				for (k = 0; k < info->asic_count[i]; k++) {
 					mhsmm = 0;
 					for (l = 2; l < (2 + AVA9_DEFAULT_PLL_CNT); l++) {
-						mhsmm += (info->get_asic[i][j][k][l] * info->get_frequency[i][j][l - 2]);
+						mhsmm += (info->get_asic[i][j][k][l] * info->get_frequency[i][j][k][l - 2]);
 					}
 
 					sprintf(buf, "%7.2f ", mhsmm / 1000);
@@ -2495,15 +2568,16 @@ char *set_avalon9_device_voltage_level(struct cgpu_info *avalon9, char *arg)
 char *set_avalon9_device_freq(struct cgpu_info *avalon9, char *arg)
 {
 	struct avalon9_info *info = avalon9->device_data;
-	unsigned int val, addr = 0, i, j, k;
+	unsigned int val[AVA9_DEFAULT_PLL_CNT], addr = 0, i, j, k;
 	uint32_t miner_id = 0;
+	uint32_t asic_id = 0;
 
 	if (!(*arg))
 		return NULL;
 
-	sscanf(arg, "%d-%d-%d", &val, &addr, &miner_id);
+	sscanf(arg, "%d:%d:%d:%d:%d:%d:%d-%d-%d-%d", &val[0], &val[1], &val[2], &val[3], &val[4], &val[5], &val[6], &addr, &miner_id, &asic_id);
 
-	if (val > AVA9_DEFAULT_FREQUENCY_MAX)
+	if (val[AVA9_DEFAULT_PLL_CNT - 1] > AVA9_DEFAULT_FREQUENCY_MAX)
 		return "Invalid value passed to set_avalon9_device_freq";
 
 	if (addr >= AVA9_DEFAULT_MODULARS) {
@@ -2523,15 +2597,15 @@ char *set_avalon9_device_freq(struct cgpu_info *avalon9, char *arg)
 
 			if (miner_id) {
 				for (k = 0; k < AVA9_DEFAULT_PLL_CNT; k++)
-					info->set_frequency[i][miner_id - 1][k] = val;
+					info->set_frequency[i][miner_id - 1][k] = val[k];
 
-				avalon9_set_freq(avalon9, i, miner_id - 1, info->set_frequency[i][miner_id - 1]);
+				avalon9_set_freq(avalon9, i, miner_id - 1, asic_id, info->set_frequency[i][miner_id - 1]);
 			} else {
 				for (j = 0; j < info->miner_count[i]; j++) {
 					for (k = 0; k < AVA9_DEFAULT_PLL_CNT; k++)
-						info->set_frequency[i][j][k] = val;
+						info->set_frequency[i][j][k] = val[k];
 
-					avalon9_set_freq(avalon9, i, j, info->set_frequency[i][j]);
+					avalon9_set_freq(avalon9, i, j, asic_id, info->set_frequency[i][j]);
 				}
 			}
 		}
@@ -2548,22 +2622,22 @@ char *set_avalon9_device_freq(struct cgpu_info *avalon9, char *arg)
 
 		if (miner_id) {
 			for (k = 0; k < AVA9_DEFAULT_PLL_CNT; k++)
-				info->set_frequency[addr][miner_id - 1][k] = val;
+				info->set_frequency[addr][miner_id - 1][k] = val[k];
 
-			avalon9_set_freq(avalon9, addr, miner_id - 1, info->set_frequency[addr][miner_id - 1]);
+			avalon9_set_freq(avalon9, addr, miner_id - 1, asic_id, info->set_frequency[addr][miner_id - 1]);
 
 		} else {
 			for (j = 0; j < info->miner_count[addr]; j++) {
 				for (k = 0; k < AVA9_DEFAULT_PLL_CNT; k++)
-					info->set_frequency[addr][j][k] = val;
+					info->set_frequency[addr][j][k] = val[k];
 
-				avalon9_set_freq(avalon9, addr, j, info->set_frequency[addr][j]);
+				avalon9_set_freq(avalon9, addr, j, asic_id, info->set_frequency[addr][j]);
 			}
 		}
 	}
 
 	applog(LOG_NOTICE, "%s-%d: Update frequency to %d",
-		avalon9->drv->name, avalon9->device_id, val);
+		avalon9->drv->name, avalon9->device_id, val[AVA9_DEFAULT_PLL_CNT - 1]);
 
 	return NULL;
 }
