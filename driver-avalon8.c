@@ -2862,6 +2862,7 @@ char *set_avalon8_LP_fac_up_info(struct cgpu_info *avalon8, char *arg)
 
 	if (!((factor > 0) && (factor <= 1)))
 		return "Invalid factor value passed to set_avalon8_lowpower_fac_info";
+	factor = factor * 10;
 
 	avalon8_set_LP_fac_up(avalon8, 0, factor, thresh, init_val);
 
@@ -2883,6 +2884,7 @@ char *set_avalon8_LP_fac_down_info(struct cgpu_info *avalon8, char *arg)
 
 	if (!((factor > 0) && (factor <= 1)))
 		return "Invalid factor value passed to set_avalon8_lowpower_fac_info";
+	factor = factor * 10;
 
 	avalon8_set_LP_fac_down(avalon8, 0, factor, thresh, init_val);
 	
