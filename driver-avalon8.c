@@ -2549,6 +2549,34 @@ static struct api_data *avalon8_api_stats(struct cgpu_info *avalon8)
 
 				int l;
 				/* i: modular, j: miner, k:asic, l:value */
+				for (j = 0; j < info->miner_count[i]; j++) {
+					for (l = 0; l < AVA8_DEFAULT_PLL_CNT; l++) {
+						sprintf(buf, " GF%d_%d[", j, l);
+						strcat(statbuf, buf);
+						for (k = 0; k < info->asic_count[i]; k++) {
+							sprintf(buf, "%3d ", info->get_frequency[i][j][k][l]);
+							strcat(statbuf, buf);
+						}
+
+						statbuf[strlen(statbuf) - 1] = ']';
+						statbuf[strlen(statbuf)] = '\0';
+					}
+				}
+
+				for (j = 0; j < info->miner_count[i]; j++) {
+					for (l = 0; l < AVA8_DEFAULT_PLL_CNT; l++) {
+						sprintf(buf, " PLL%d_%d[", j, l);
+						strcat(statbuf, buf);
+						for (k = 0; k < info->asic_count[i]; k++) {
+							sprintf(buf, "%3d ", info->get_asic[i][j][k][2 + l]);
+							strcat(statbuf, buf);
+						}
+
+						statbuf[strlen(statbuf) - 1] = ']';
+						statbuf[strlen(statbuf)] = '\0';
+					}
+}
+				/* i: modular, j: miner, k:asic, l:value */
 				for (l = 0; l < 2; l++) {
 					for (j = 0; j < info->miner_count[i]; j++) {
 						sprintf(buf, " C_%02d_%02d[", j, l);
