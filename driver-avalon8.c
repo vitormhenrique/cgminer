@@ -19,7 +19,7 @@
 
 #define get_fan_pwm(v)	(AVA8_PWM_MAX - (v) * AVA8_PWM_MAX / 100)
 
-int opt_avalon8_temp_target = AVA8_DEFAULT_TEMP_TARGET;
+int opt_avalon8_temp_target = AVA8_INVALID_TEMP_TARGET;
 
 int opt_avalon8_fan_min = AVA8_DEFAULT_FAN_MIN;
 int opt_avalon8_fan_max = AVA8_DEFAULT_FAN_MAX;
@@ -1512,6 +1512,15 @@ static void detect_modules(struct cgpu_info *avalon8)
 		tmp = be32toh(tmp);
 		info->total_asics[i] = tmp;
 		info->temp_overheat[i] = AVA8_DEFAULT_TEMP_OVERHEAT;
+
+		if (opt_avalon8_temp_target == AVA8_INVALID_TEMP_TARGET) {
+			if (!strncmp((char *)&(info->mm_version[i]), "851", 3)) {
+				opt_avalon8_temp_target = AVA851_DEFAULT_TEMP_TARGET;
+			}
+			else {
+				opt_avalon8_temp_target = AVA8_DEFAULT_TEMP_TARGET;
+			}
+		}
 		info->temp_target[i] = opt_avalon8_temp_target;
 		info->fan_pct[i] = opt_avalon8_fan_min;
 		for (j = 0; j < info->miner_count[i]; j++) {
