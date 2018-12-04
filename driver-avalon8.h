@@ -190,6 +190,7 @@
 #define AVA8_P_SET_LP_FAC_UP		0x51
 #define AVA8_P_SET_LP_FAC_DOWN		0x52
 #define AVA8_P_SET_LP_TIMER_INT	0x53
+#define AVA8_P_SET_LP_INDEX_ADJ1_ADJ2	0x54
 
 #define AVA8_MODULE_BROADCAST	0
 /* End of avalon8 protocol package type */
