@@ -1995,7 +1995,7 @@ static void avalon8_set_overclocking_info(struct cgpu_info *avalon8, int addr, u
 		avalon8_iic_xfer_pkg(avalon8, addr, &send_pkg, NULL);
 }
 
-static void avalon8_set_LP_fac_up(struct cgpu_info *avalon8, int addr, float factor, float thresh, float init_val)
+static void avalon8_set_adj_fac_up(struct cgpu_info *avalon8, int addr, int factor, int thresh, int init)
 {
 	struct avalon8_info *info = avalon8->device_data;
 	struct avalon8_pkg send_pkg;
@@ -2005,21 +2005,22 @@ static void avalon8_set_LP_fac_up(struct cgpu_info *avalon8, int addr, float fac
 	memset(send_pkg.data, 0, AVA8_P_DATA_LEN);
 
 	tmp = be32toh(factor);
-	memcpy(send_pkg.data + 0, &tmp, 4);
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set factor %f",
+	memcpy(send_pkg.data, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj up factor %d",
 			avalon8->drv->name, avalon8->device_id, addr, factor);
+
 	tmp = be32toh(thresh);
 	memcpy(send_pkg.data + 4, &tmp, 4);
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set thresh %f",
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj up thresh %d",
 			avalon8->drv->name, avalon8->device_id, addr, thresh);
 
-	tmp = be32toh(init_val);
+	tmp = be32toh(init);
 	memcpy(send_pkg.data + 8, &tmp, 4);
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set init_val %f",
-			avalon8->drv->name, avalon8->device_id, addr, init_val);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj up init %d",
+			avalon8->drv->name, avalon8->device_id, addr, init);
 
 	/* Package the data */
-	avalon8_init_pkg(&send_pkg, AVA8_P_SET_LP_FAC_UP, 1, 1);
+	avalon8_init_pkg(&send_pkg, AVA8_P_SET_ADJ_FAC_UP, 1, 1);
 
 	if (addr == AVA8_MODULE_BROADCAST)
 		avalon8_send_bc_pkgs(avalon8, &send_pkg);
@@ -2029,7 +2030,7 @@ static void avalon8_set_LP_fac_up(struct cgpu_info *avalon8, int addr, float fac
 	return;
 }
 
-static void avalon8_set_LP_fac_down(struct cgpu_info *avalon8, int addr, float factor, float thresh, float init_val)
+static void avalon8_set_adj_fac_down(struct cgpu_info *avalon8, int addr, int factor, int thresh, int init)
 {
 	struct avalon8_info *info = avalon8->device_data;
 	struct avalon8_pkg send_pkg;
@@ -2038,22 +2039,22 @@ static void avalon8_set_LP_fac_down(struct cgpu_info *avalon8, int addr, float f
 	memset(send_pkg.data, 0, AVA8_P_DATA_LEN);
 
 	tmp = be32toh(factor);
-	memcpy(send_pkg.data + 0, &tmp, 4);
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set factor %f",
+	memcpy(send_pkg.data, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj down factor %d",
 			avalon8->drv->name, avalon8->device_id, addr, factor);
 
 	tmp = be32toh(thresh);
 	memcpy(send_pkg.data + 4, &tmp, 4);
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set thresh %f",
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj down thresh %d",
 			avalon8->drv->name, avalon8->device_id, addr, thresh);
 
-	tmp = be32toh(init_val);
+	tmp = be32toh(init);
 	memcpy(send_pkg.data + 8, &tmp, 4);
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set init val %f",
-			avalon8->drv->name, avalon8->device_id, addr, init_val);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj down init %d",
+			avalon8->drv->name, avalon8->device_id, addr, init);
 
 	/* Package the data */
-	avalon8_init_pkg(&send_pkg, AVA8_P_SET_LP_FAC_DOWN, 1, 1);
+	avalon8_init_pkg(&send_pkg, AVA8_P_SET_ADJ_FAC_DOWN, 1, 1);
 
 	if (addr == AVA8_MODULE_BROADCAST)
 		avalon8_send_bc_pkgs(avalon8, &send_pkg);
@@ -2063,49 +2064,32 @@ static void avalon8_set_LP_fac_down(struct cgpu_info *avalon8, int addr, float f
 	return;
 }
 
-static void avalon8_set_LP_timer_interval(struct cgpu_info *avalon8, int addr, uint32_t value)
+static void avalon8_set_adj_control(struct cgpu_info *avalon8, int addr, uint32_t time, uint32_t pll_index, uint32_t adj_all_on, uint32_t adj_pll_on)
 {
 	struct avalon8_pkg send_pkg;
 	uint32_t tmp;
 
 	memset(send_pkg.data, 0, AVA8_P_DATA_LEN);
 
-	tmp = be32toh(value);
+	tmp = be32toh(time);
 	memcpy(send_pkg.data, &tmp, 4);
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set low power timer interval %d",
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj control timer value %d",
 			avalon8->drv->name, avalon8->device_id, addr, tmp);
 
-	/* Package the data */
-	avalon8_init_pkg(&send_pkg, AVA8_P_SET_LP_TIMER_INT, 1, 1);
-	if (addr == AVA8_MODULE_BROADCAST)
-		avalon8_send_bc_pkgs(avalon8, &send_pkg);
-	else
-		avalon8_iic_xfer_pkg(avalon8, addr, &send_pkg, NULL);
-
-	return;
-}
-
-static void avalon8_set_pllidx_adj1_adj2(struct cgpu_info *avalon8, int addr, uint32_t pll_index, uint32_t adj_all_on, uint32_t adj_pll_on)
-{
-	struct avalon8_pkg send_pkg;
-	uint32_t tmp;
-
-	memset(send_pkg.data, 0, AVA8_P_DATA_LEN);
-
-	send_pkg.data[0] = (uint8_t)pll_index;
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set pll cnt index value %d",
+	send_pkg.data[4] = (uint8_t)pll_index;
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj control pll index value %d",
 			avalon8->drv->name, avalon8->device_id, addr, pll_index);
 
-	send_pkg.data[1] = (uint8_t)adj_all_on;
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adjust all on control value %d",
+	send_pkg.data[5] = (uint8_t)adj_all_on;
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj control all on value %d",
 			avalon8->drv->name, avalon8->device_id, addr, adj_all_on);
 
-	send_pkg.data[2] = (uint8_t)adj_pll_on;
-	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adjust pll on control value %d",
+	send_pkg.data[6] = (uint8_t)adj_pll_on;
+	applog(LOG_DEBUG, "%s-%d-%d: avalon8 set adj control pll on value %d",
 			avalon8->drv->name, avalon8->device_id, addr, adj_pll_on);
 
 	/* Package the data */
-	avalon8_init_pkg(&send_pkg, AVA8_P_SET_LP_INDEX_ADJ1_ADJ2, 1, 1);
+	avalon8_init_pkg(&send_pkg, AVA8_P_SET_ADJ_CONTROL, 1, 1);
 	if (addr == AVA8_MODULE_BROADCAST)
 		avalon8_send_bc_pkgs(avalon8, &send_pkg);
 	else
@@ -3052,91 +3036,75 @@ char *set_avalon8_overclocking_info(struct cgpu_info *avalon8, char *arg)
 	return NULL;
 }
 
-char *set_avalon8_LP_fac_up_info(struct cgpu_info *avalon8, char *arg)
+char *set_avalon8_adj_fac_up_info(struct cgpu_info *avalon8, char *arg)
 {
 	struct avalon8_info *info = avalon8->device_data;
-	float factor, thresh, init_val;
+	float factor;
+	int thresh, init, factor_multi;
 
 	if (!(*arg))
 		return NULL;
 
-	sscanf(arg, "%f-%f-%f", &factor, &thresh, &init_val);
+	sscanf(arg, "%f-%d-%d", &factor, &thresh, &init);
 
 	if (!((factor > 0) && (factor <= 1)))
-		return "Invalid factor value passed to set_avalon8_lowpower_fac_info";
-	factor = factor * 10;
+		return "Invalid factor value passed to set_avalon8_adj_fac_up_info";
+	factor_multi = (int)(factor * 10);
 
-	avalon8_set_LP_fac_up(avalon8, 0, factor, thresh, init_val);
+	avalon8_set_adj_fac_up(avalon8, 0, factor_multi, thresh, init);
 
-	applog(LOG_NOTICE, "%s-%d: Update low power factor up info: [%f, %f, %f]",
-		avalon8->drv->name, avalon8->device_id, factor, thresh, init_val);
+	applog(LOG_NOTICE, "%s-%d: Update adjust factor up info: [%f, %d, %d]",
+		avalon8->drv->name, avalon8->device_id, factor, thresh, init);
 
 	return NULL;
 }
 
-char *set_avalon8_LP_fac_down_info(struct cgpu_info *avalon8, char *arg)
+char *set_avalon8_adj_fac_down_info(struct cgpu_info *avalon8, char *arg)
 {
 	struct avalon8_info *info = avalon8->device_data;
-	float factor, thresh, init_val;
+	float factor;
+	int thresh, init, factor_multi;
 
 	if (!(*arg))
 		return NULL;
 
-	sscanf(arg, "%f-%f-%f", &factor, &thresh, &init_val);
+	sscanf(arg, "%f-%d-%d", &factor, &thresh, &init);
 
 	if (!((factor > 0) && (factor <= 1)))
-		return "Invalid factor value passed to set_avalon8_lowpower_fac_info";
-	factor = factor * 10;
+		return "Invalid factor value passed to set_avalon8_adj_fac_down_info";
+	factor_multi = (int)(factor * 10);
 
-	avalon8_set_LP_fac_down(avalon8, 0, factor, thresh, init_val);
+	avalon8_set_adj_fac_down(avalon8, 0, factor_multi, thresh, init);
 	
-	applog(LOG_NOTICE, "%s-%d: Update low power factor down info: [%f, %f, %f]",
-		avalon8->drv->name, avalon8->device_id, factor, thresh, init_val);
+	applog(LOG_NOTICE, "%s-%d: Update adjust factor down info: [%f, %d, %d]",
+		avalon8->drv->name, avalon8->device_id, factor, thresh, init);
 
 	return NULL;
 }
 
-char *set_avalon8_LP_timer_interval_info(struct cgpu_info *avalon8, char *arg)
+char *set_avalon8_adj_control_info(struct cgpu_info *avalon8, char *arg)
 {
 	struct avalon8_info *info = avalon8->device_data;
-	uint32_t val;
+	uint32_t time, pll_index, adj_all_on = 1, adj_pll_on = 0;
 
 	if (!(*arg))
 		return NULL;
 
-	sscanf(arg, "%d", &val);
-
-	avalon8_set_LP_timer_interval(avalon8, 0, val);
-
-	applog(LOG_NOTICE, "%s-%d: Set low power timer interval %d",
-		avalon8->drv->name, avalon8->device_id, val);
-
-	return NULL;
-}
-
-char *set_avalon8_pllidx_adj1_adj2_info(struct cgpu_info *avalon8, char *arg)
-{
-	struct avalon8_info *info = avalon8->device_data;
-	uint32_t pll_index, adj_all_on = 1, adj_pll_on = 0;
-
-	if (!(*arg))
-		return NULL;
-
-	sscanf(arg, "%d-%d-%d", &pll_index, &adj_all_on, &adj_pll_on);
+	sscanf(arg, "%d-%d-%d-%d", &time, &pll_index, &adj_all_on, &adj_pll_on);
 
 	if (pll_index >= AVA8_DEFAULT_MINER_CNT)
-		return "Invalid pllidx value passed to set_avalon8_pllidx_adj1_adj2_info";
+		return "Invalid pllidx value passed to set_avalon8_adj_control_info";
 
 	if ((adj_all_on != 0) && (adj_all_on != 1))
-		return "Invalid adj1 value passed to set_avalon8_pllidx_adj1_adj2_info";
+		return "Invalid adj_all_on value passed to set_avalon8_adj_control_info";
 
 	if ((adj_pll_on != 0) && (adj_pll_on != 1))
-		return "Invalid adj2 value passed to set_avalon8_pllidx_adj1_adj2_info";
+		return "Invalid adj_pll_on value passed to set_avalon8_adj_control_info";
 
-	avalon8_set_pllidx_adj1_adj2(avalon8, 0, pll_index, adj_all_on, adj_pll_on);
+	avalon8_set_adj_control(avalon8, 0, time, pll_index, adj_all_on, adj_pll_on);
 
-	applog(LOG_NOTICE, "%s-%d: Set low power pll_index %d, adj_all_on %d, adj_pll_on %d",
-		avalon8->drv->name, avalon8->device_id, pll_index, adj_all_on, adj_pll_on);
+	applog(LOG_NOTICE, "%s-%d: Set adj control info: time %d, pll_index %d, adj_all_on %d, adj_pll_on %d",
+		avalon8->drv->name, avalon8->device_id, time, pll_index, adj_all_on, adj_pll_on);
 
 	return NULL;
 }
@@ -3280,41 +3248,31 @@ static char *avalon8_set_device(struct cgpu_info *avalon8, char *option, char *s
 		return set_avalon8_overclocking_info(avalon8, setting);
 	}
 
-	if (strcasecmp(option, "LP-factor-up") == 0) {
+	if (strcasecmp(option, "adj-factor-up") == 0) {
 		if (!setting || !*setting) {
-			sprintf(replybuf, "missing low power up factor value");
+			sprintf(replybuf, "missing adj factor up value");
 			return replybuf;
 		}
 
-		return set_avalon8_LP_fac_up_info(avalon8, setting);
+		return set_avalon8_adj_fac_up_info(avalon8, setting);
 	}
 
-	if (strcasecmp(option, "LP-factor-down") == 0) {
+	if (strcasecmp(option, "adj-factor-down") == 0) {
 		if (!setting || !*setting) {
-			sprintf(replybuf, "missing low power down factor value");
+			sprintf(replybuf, "missing adj factor down value");
 			return replybuf;
 		}
 
-		return set_avalon8_LP_fac_down_info(avalon8, setting);
+		return set_avalon8_adj_fac_down_info(avalon8, setting);
 	}
 
-	if (strcasecmp(option, "LP-timer-inter") == 0) {
+	if (strcasecmp(option, "adj-control") == 0) {
 		if (!setting || !*setting) {
-			sprintf(replybuf, "missing low power timer interval value");
+			sprintf(replybuf, "missing adj control value");
 			return replybuf;
 		}
-
-		return set_avalon8_LP_timer_interval_info(avalon8, setting);
+		return set_avalon8_adj_control_info(avalon8, setting);
 	}
-
-	if (strcasecmp(option, "LP-pllidx-adj1-adj2") == 0) {
-		if (!setting || !*setting) {
-			sprintf(replybuf, "missing pllidx-adj1-adj2 value");
-			return replybuf;
-		}
-		return set_avalon8_pllidx_adj1_adj2_info(avalon8, setting);
-	}
-
 
 	sprintf(replybuf, "Unknown option: %s", option);
 	return replybuf;
