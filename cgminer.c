@@ -1700,6 +1700,9 @@ static struct opt_table opt_config_table[] = {
 	OPT_WITH_ARG("--avalon9-pid-d",
 		     set_int_0_to_9999, opt_show_intval, &opt_avalon9_pid_d,
 		     "Set Avalon9 pid-d, range 0-9999."),
+	OPT_WITH_ARG("--avalon9-adjust-voltage",
+		     set_int_0_to_1, opt_show_intval, &opt_avalon9_adjust_voltage,
+		     "Set Avalon9 adjust voltage, range 0-1, 0: disable, 1: enable"),
 #endif
 #ifdef USE_AVALON_MINER
 	OPT_WITH_CBARG("--avalonm-voltage",
