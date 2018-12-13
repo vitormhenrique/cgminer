@@ -201,12 +201,12 @@ struct avalon8_dev_description avalon8_dev_table[] = {
 		26,
 		AVA8_MM831_VIN_ADC_RATIO,
 		AVA8_MM831_VOUT_ADC_RATIO,
-		5,
+		-7,
 		{
 			AVA8_DEFAULT_FREQUENCY_0M,
 			AVA8_DEFAULT_FREQUENCY_0M,
 			AVA8_DEFAULT_FREQUENCY_0M,
-			AVA8_DEFAULT_FREQUENCY_725M
+			AVA8_DEFAULT_FREQUENCY_500M
 		}
 	},
 	{
@@ -860,13 +860,9 @@ static int decode_pkg(struct cgpu_info *avalon8, struct avalon8_ret *ar, int mod
 					info->get_frequency[modular_id][miner_id][asic_id][i] = be16toh(freq);
 				}
 			}
-			if (!strncmp((char *)&(info->mm_version[modular_id]), "841", 3)) {
-				for (i = 0; i < AVA8_DEFAULT_PLL_CNT; i++) {
-					memcpy(&freq, ar->data + 8 + AVA8_DEFAULT_PLL_CNT + i * 2, 2);
-					info->get_frequency[modular_id][miner_id][asic_id][i] = be16toh(freq);
-				}
-			}
-			if (!strncmp((char *)&(info->mm_version[modular_id]), "821", 3)) {
+			if (!strncmp((char *)&(info->mm_version[modular_id]), "841", 3) || 
+				!strncmp((char *)&(info->mm_version[modular_id]), "831", 3) || 
+				!strncmp((char *)&(info->mm_version[modular_id]), "821", 3)) {
 				for (i = 0; i < AVA8_DEFAULT_PLL_CNT; i++) {
 					memcpy(&freq, ar->data + 8 + AVA8_DEFAULT_PLL_CNT + i * 2, 2);
 					info->get_frequency[modular_id][miner_id][asic_id][i] = be16toh(freq);
@@ -2408,14 +2404,9 @@ static float avalon8_hash_cal(struct cgpu_info *avalon8, int modular_id)
 					mhsmm += (info->get_asic[modular_id][i][j][2 + k] * info->get_frequency[modular_id][i][j][k]);
 			}
 		}
-	} else if (!strncmp((char *)&(info->mm_version[modular_id]), "841", 3)) {
-		for (i = 0; i < info->miner_count[modular_id]; i++) {
-			for (j = 0; j < info->asic_count[modular_id]; j++) {
-				for (k = 0; k < AVA8_DEFAULT_PLL_CNT; k++)
-					mhsmm += (info->get_asic[modular_id][i][j][2 + k] * info->get_frequency[modular_id][i][j][k]);
-			}
-		}
-	} else if (!strncmp((char *)&(info->mm_version[modular_id]), "821", 3)) {
+	} else if (!strncmp((char *)&(info->mm_version[modular_id]), "841", 3) || 
+				!strncmp((char *)&(info->mm_version[modular_id]), "831", 3) || 
+				!strncmp((char *)&(info->mm_version[modular_id]), "821", 3)) {
 		for (i = 0; i < info->miner_count[modular_id]; i++) {
 			for (j = 0; j < info->asic_count[modular_id]; j++) {
 				for (k = 0; k < AVA8_DEFAULT_PLL_CNT; k++)
@@ -2710,9 +2701,9 @@ static struct api_data *avalon8_api_stats(struct cgpu_info *avalon8)
 						for (l = 2; l < 6; l++) {
 							if (!strncmp((char *)&(info->mm_version[i]), "851", 3))
 								mhsmm += (info->get_asic[i][j][k][l] * info->get_frequency[i][j][k][l - 2]);
-							else if (!strncmp((char *)&(info->mm_version[i]), "841", 3))
-								mhsmm += (info->get_asic[i][j][k][l] * info->get_frequency[i][j][k][l - 2]);
-							else if (!strncmp((char *)&(info->mm_version[i]), "821", 3))
+							else if (!strncmp((char *)&(info->mm_version[i]), "841", 3) || 
+									!strncmp((char *)&(info->mm_version[i]), "831", 3) || 
+									!strncmp((char *)&(info->mm_version[i]), "821", 3))
 								mhsmm += (info->get_asic[i][j][k][l] * info->get_frequency[i][j][k][l - 2]);
 							else
 								mhsmm += (info->get_asic[i][j][k][l] * info->set_frequency[i][j][l - 2]);
