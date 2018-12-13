@@ -224,6 +224,9 @@
 #define AVA8_OTP_INFO_LOTIDCRC_OFFSET	0
 #define AVA8_OTP_INFO_LOTID_OFFSET  	6
 
+#define AVA8_DEF_ADJ_PARAM_NUM	4
+#define AVA8_INVALID_ADJ_PARAM	-1
+
 struct avalon8_pkg {
 	uint8_t head[2];
 	uint8_t type;
@@ -377,6 +380,7 @@ extern char *set_avalon8_freq(char *arg);
 extern char *set_avalon8_voltage_level(char *arg);
 extern char *set_avalon8_voltage_level_offset(char *arg);
 extern char *set_avalon8_asic_otp(char *arg);
+extern char *set_avalon8_adj(char *arg);
 extern int opt_avalon8_temp_target;
 extern int opt_avalon8_polling_delay;
 extern int opt_avalon8_aucspeed;
