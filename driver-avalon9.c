@@ -2828,6 +2828,28 @@ char *set_avalon9_adjust_voltage_info(struct cgpu_info *avalon9, char *arg)
 	return NULL;
 }
 
+char *set_avalon9_target_temp_info(struct cgpu_info *avalon9, char *arg)
+{
+	struct avalon9_info *info = avalon9->device_data;
+	int i, val;
+
+	if (!(*arg))
+		return NULL;
+
+	sscanf(arg, "%d", &val);
+
+	if (val < AVA9_DEFAULT_TEMP_MIN || val > AVA9_DEFAULT_TEMP_MAX)
+		return "Invalid temperature value to set_avalon9_target_temp_info";
+
+	for (i = 1; i < AVA9_DEFAULT_MODULARS; i++)
+		info->temp_target[i] = val;
+
+	applog(LOG_NOTICE, "%s-%d: Update temperature info: %d",
+		avalon9->drv->name, avalon9->device_id, val);
+
+	return NULL;
+}
+
 static char *avalon9_set_device(struct cgpu_info *avalon9, char *option, char *setting, char *replybuf)
 {
 	unsigned int val;
@@ -2974,6 +2996,15 @@ static char *avalon9_set_device(struct cgpu_info *avalon9, char *option, char *s
 		}
 
 		return set_avalon9_adjust_voltage_info(avalon9, setting);
+	}
+
+	if (strcasecmp(option, "target-temp") == 0) {
+		if (!setting || !*setting) {
+			sprintf(replybuf, "missing target temperature info");
+			return replybuf;
+		}
+
+		return set_avalon9_target_temp_info(avalon9, setting);
 	}
 
 	sprintf(replybuf, "Unknown option: %s", option);
