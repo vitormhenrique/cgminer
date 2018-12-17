@@ -1635,8 +1635,11 @@ static void detect_modules(struct cgpu_info *avalon8)
 		if (opt_avalon8_temp_target == AVA8_INVALID_TEMP_TARGET) {
 			if (!strncmp((char *)&(info->mm_version[i]), "851", 3)) {
 				opt_avalon8_temp_target = AVA851_DEFAULT_TEMP_TARGET;
-			}
-			else {
+			} else if (!strncmp((char *)&(info->mm_version[i]), "831", 3)) {
+				opt_avalon8_temp_target = AVA831_DEFAULT_TEMP_TARGET;
+			} else if (!strncmp((char *)&(info->mm_version[i]), "821", 3)) {
+				opt_avalon8_temp_target = AVA821_DEFAULT_TEMP_TARGET;
+			} else {
 				opt_avalon8_temp_target = AVA8_DEFAULT_TEMP_TARGET;
 			}
 		}
