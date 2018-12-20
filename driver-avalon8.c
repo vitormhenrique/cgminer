@@ -194,7 +194,7 @@ struct avalon8_dev_description avalon8_dev_table[] = {
 		26,
 		AVA8_MM821_VIN_ADC_RATIO,
 		AVA8_MM821_VOUT_ADC_RATIO,
-		-7,
+		-8,
 		{
 			AVA8_DEFAULT_FREQUENCY_0M,
 			AVA8_DEFAULT_FREQUENCY_0M,
@@ -209,7 +209,7 @@ struct avalon8_dev_description avalon8_dev_table[] = {
 		26,
 		AVA8_MM831_VIN_ADC_RATIO,
 		AVA8_MM831_VOUT_ADC_RATIO,
-		-7,
+		-8,
 		{
 			AVA8_DEFAULT_FREQUENCY_0M,
 			AVA8_DEFAULT_FREQUENCY_0M,
@@ -224,7 +224,7 @@ struct avalon8_dev_description avalon8_dev_table[] = {
 		26,
 		AVA8_MM841_VIN_ADC_RATIO,
 		AVA8_MM841_VOUT_ADC_RATIO,
-		-7,
+		-8,
 		{
 			AVA8_DEFAULT_FREQUENCY_0M,
 			AVA8_DEFAULT_FREQUENCY_0M,
@@ -239,12 +239,12 @@ struct avalon8_dev_description avalon8_dev_table[] = {
 		26,
 		AVA8_MM851_VIN_ADC_RATIO,
 		AVA8_MM851_VOUT_ADC_RATIO,
-		-15,
+		-8,
 		{
 			AVA8_DEFAULT_FREQUENCY_0M,
-			AVA8_DEFAULT_FREQUENCY_475M,
-			AVA8_DEFAULT_FREQUENCY_500M,
-			AVA8_DEFAULT_FREQUENCY_525M
+			AVA8_DEFAULT_FREQUENCY_0M,
+			AVA8_DEFAULT_FREQUENCY_0M,
+			AVA8_DEFAULT_FREQUENCY_500M
 		}
 	}
 };
