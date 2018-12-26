@@ -635,7 +635,10 @@ static int decode_pkg(struct cgpu_info *avalon8, struct avalon8_ret *ar, int mod
 		info->error_code[modular_id][ar->cnt] = be32toh(tmp);
 
 		memcpy(&tmp, ar->data + 24, 4);
-		info->error_crc[modular_id][ar->idx] += be32toh(tmp);
+		info->get_jamlink_ecc1[modular_id][ar->idx] += be32toh(tmp);
+
+		memcpy(&tmp, ar->data + 28, 4);
+		info->get_jamlink_ecc2[modular_id][ar->idx] += be32toh(tmp);
 		break;
 	case AVA8_P_STATUS_PMU:
 		/* TODO: decode ntc led from PMU */
@@ -739,6 +742,29 @@ static int decode_pkg(struct cgpu_info *avalon8, struct avalon8_ret *ar, int mod
 					memcpy(&freq, ar->data + 8 + AVA8_DEFAULT_PLL_CNT + i * 2, 2);
 					info->get_frequency[modular_id][miner_id][asic_id][i] = be16toh(freq);
 				}
+			}
+		}
+		break;
+	case AVA8_P_STATUS_ECC:
+		{
+			int miner_id;
+			int asic_id;
+
+			if (!info->asic_count[modular_id])
+				break;
+
+			miner_id = ar->idx / info->asic_count[modular_id];
+			asic_id = ar->idx % info->asic_count[modular_id];
+
+			applog(LOG_DEBUG, "%s-%d-%d: AVA8_P_STATUS_ECC %d-%d",
+						avalon8->drv->name, avalon8->device_id, modular_id,
+						miner_id, asic_id);
+
+			for (i = 0; i < 2; i++) {
+				memcpy(&tmp, ar->data + i * 8, 4);
+				info->get_asic_ecc1[modular_id][miner_id][asic_id + i] += be32toh(tmp);
+				memcpy(&tmp, ar->data + i * 8 + 4, 4);
+				info->get_asic_ecc2[modular_id][miner_id][asic_id + i] += be32toh(tmp);
 			}
 		}
 		break;
@@ -1479,7 +1505,10 @@ static void detect_modules(struct cgpu_info *avalon8)
 			info->local_works_i[i][j] = 0;
 			info->hw_works_i[i][j] = 0;
 			info->error_code[i][j] = 0;
-			info->error_crc[i][j] = 0;
+			info->get_jamlink_ecc1[i][j] = 0;
+			info->get_jamlink_ecc2[i][j] = 0;
+			memset(info->get_asic_ecc1[i][j], 0, sizeof(uint64_t) * info->asic_count[i]);
+			memset(info->get_asic_ecc2[i][j], 0, sizeof(uint64_t) * info->asic_count[i]);
 		}
 		info->error_code[i][j] = 0;
 		info->error_polling_cnt[i] = 0;
@@ -2391,9 +2420,40 @@ static struct api_data *avalon8_api_stats(struct cgpu_info *avalon8)
 		sprintf(buf, " FM[%d]", info->freq_mode[i]);
 		strcat(statbuf, buf);
 
-		strcat(statbuf, " CRC[");
 		for (j = 0; j < info->miner_count[i]; j++) {
-			sprintf(buf, "%d ", info->error_crc[i][j]);
+			sprintf(buf, " ASIC_ECC1_%d[", j);
+			strcat(statbuf, buf);
+			for (k = 0; k < info->asic_count[i]; k++) {
+				sprintf(buf, "%"PRIu64" ", info->get_asic_ecc1[i][j][k]);
+				strcat(statbuf, buf);
+			}
+
+			statbuf[strlen(statbuf) - 1] = ']';
+			statbuf[strlen(statbuf)] = '\0';
+		}
+
+		for (j = 0; j < info->miner_count[i]; j++) {
+			sprintf(buf, " ASIC_ECC2_%d[", j);
+			strcat(statbuf, buf);
+			for (k = 0; k < info->asic_count[i]; k++) {
+				sprintf(buf, "%"PRIu64" ", info->get_asic_ecc2[i][j][k]);
+				strcat(statbuf, buf);
+			}
+
+			statbuf[strlen(statbuf) - 1] = ']';
+			statbuf[strlen(statbuf)] = '\0';
+		}
+
+		strcat(statbuf, " JAMLINKECC1[");
+		for (j = 0; j < info->miner_count[i]; j++) {
+			sprintf(buf, "%"PRIu64" ", info->get_jamlink_ecc1[i][j]);
+			strcat(statbuf, buf);
+		}
+		statbuf[strlen(statbuf) - 1] = ']';
+
+		strcat(statbuf, " JAMLINKECC2[");
+		for (j = 0; j < info->miner_count[i]; j++) {
+			sprintf(buf, "%"PRIu64" ", info->get_jamlink_ecc2[i][j]);
 			strcat(statbuf, buf);
 		}
 		statbuf[strlen(statbuf) - 1] = ']';

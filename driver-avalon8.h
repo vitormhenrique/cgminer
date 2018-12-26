@@ -166,6 +166,7 @@
 #define AVA8_P_STATUS_PVT		0x4c
 #define AVA8_P_STATUS_FAC		0x4d
 #define AVA8_P_STATUS_OC		0x4e
+#define AVA8_P_STATUS_ECC		0x4f
 
 #define AVA8_MODULE_BROADCAST	0
 /* End of avalon8 protocol package type */
@@ -282,6 +283,12 @@ struct avalon8_info {
 
 	uint32_t get_asic[AVA8_DEFAULT_MODULARS][AVA8_DEFAULT_MINER_CNT][AVA8_DEFAULT_ASIC_MAX][6];
 
+	uint64_t get_asic_ecc1[AVA8_DEFAULT_MODULARS][AVA8_DEFAULT_MINER_CNT][AVA8_DEFAULT_ASIC_MAX];
+	uint64_t get_asic_ecc2[AVA8_DEFAULT_MODULARS][AVA8_DEFAULT_MINER_CNT][AVA8_DEFAULT_ASIC_MAX];
+
+	uint64_t get_jamlink_ecc1[AVA8_DEFAULT_MODULARS][AVA8_DEFAULT_MINER_CNT];
+	uint64_t get_jamlink_ecc2[AVA8_DEFAULT_MODULARS][AVA8_DEFAULT_MINER_CNT];
+
 	int8_t factory_info[AVA8_DEFAULT_FACTORY_INFO_CNT];
 	int8_t overclocking_info[AVA8_DEFAULT_OVERCLOCKING_CNT];
 
@@ -292,7 +299,6 @@ struct avalon8_info {
 	uint64_t chip_matching_work[AVA8_DEFAULT_MODULARS][AVA8_DEFAULT_MINER_CNT][AVA8_DEFAULT_ASIC_MAX];
 
 	uint32_t error_code[AVA8_DEFAULT_MODULARS][AVA8_DEFAULT_MINER_CNT + 1];
-	uint32_t error_crc[AVA8_DEFAULT_MODULARS][AVA8_DEFAULT_MINER_CNT];
 	uint8_t error_polling_cnt[AVA8_DEFAULT_MODULARS];
 
 	uint8_t power_good[AVA8_DEFAULT_MODULARS];
