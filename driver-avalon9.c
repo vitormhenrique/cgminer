@@ -37,6 +37,15 @@ int opt_avalon9_freq[AVA9_DEFAULT_PLL_CNT] =
 	AVA9_DEFAULT_FREQUENCY_IGNORE
 };
 
+int32_t opt_avalon9_adjust_volt_up_init = AVA9_DEFAULT_AJUST_VOLT_UP_INIT;
+uint32_t opt_avalon9_adjust_volt_up_factor = AVA9_DEFAULT_AJUST_VOLT_UP_FACTOR;
+uint32_t opt_avalon9_adjust_volt_up_threshold = AVA9_DEFAULT_AJUST_VOLT_UP_THRESHOLD;
+int32_t opt_avalon9_adjust_volt_down_init = AVA9_DEFAULT_AJUST_VOLT_DOWN_INIT;
+uint32_t opt_avalon9_adjust_volt_down_factor = AVA9_DEFAULT_AJUST_VOLT_DOWN_FACTOR;
+uint32_t opt_avalon9_adjust_volt_down_threshold = AVA9_DEFAULT_AJUST_VOLT_DOWN_THRESHOLD;
+uint32_t opt_avalon9_adjust_volt_time = AVA9_DEFAULT_AJUST_VOLT_TIME;
+uint32_t opt_avalon9_adjust_volt_enable = AVA9_DEFAULT_AJUST_VOLT_ENABLE;
+
 int opt_avalon9_freq_sel = AVA9_DEFAULT_FREQUENCY_SEL;
 
 int opt_avalon9_polling_delay = AVA9_DEFAULT_POLLING_DELAY;
@@ -338,6 +347,20 @@ char *set_avalon9_freq(char *arg)
 
 	return NULL;
 }
+
+char *set_avalon9_adjust_volt_info(char *arg)
+{
+	int ret;
+	ret = sscanf(arg, "%d-%d-%d-%d-%d-%d-%d-%d", &opt_avalon9_adjust_volt_up_init, \
+		&opt_avalon9_adjust_volt_up_factor, &opt_avalon9_adjust_volt_up_threshold, 
+		&opt_avalon9_adjust_volt_down_init, &opt_avalon9_adjust_volt_down_factor, \
+		&opt_avalon9_adjust_volt_down_threshold, &opt_avalon9_adjust_volt_time, &opt_avalon9_adjust_volt_enable);
+
+	 if (ret < 1)
+           return "Invalid value for adjust volt";
+	return NULL;
+}
+
 
 char *set_avalon9_voltage_level(char *arg)
 {
@@ -753,7 +776,7 @@ static int decode_pkg(struct cgpu_info *avalon9, struct avalon9_ret *ar, int mod
 		break;
 	case AVA9_P_STATUS_FAC:
 		applog(LOG_DEBUG, "%s-%d-%d: AVA9_P_STATUS_FAC", avalon9->drv->name, avalon9->device_id, modular_id);
-		info->factory_info[modular_id][0] = ar->data[0];
+		memcpy(&info->factory_info[modular_id][0], ar->data, info->miner_count[modular_id]);
 		break;
 	case AVA9_P_STATUS_OC:
 		applog(LOG_DEBUG, "%s-%d-%d: AVA9_P_STATUS_OC", avalon9->drv->name, avalon9->device_id, modular_id);
@@ -1722,6 +1745,67 @@ static void avalon9_init_setting(struct cgpu_info *avalon9, int addr)
 		avalon9_iic_xfer_pkg(avalon9, addr, &send_pkg, NULL);
 }
 
+static void avalon9_set_adjust_voltage_option(struct cgpu_info *avalon9, int addr, int32_t up_init, uint32_t up_factor, uint32_t up_threshold,
+ 						int32_t down_init, uint32_t down_factor, uint32_t down_threshold, uint32_t time, uint32_t enable)
+ {
+ 	struct avalon9_info *info = avalon9->device_data;
+ 	struct avalon9_pkg send_pkg;
+ 	int32_t tmp;
+ 
+  	memset(send_pkg.data, 0, AVA9_P_DATA_LEN);
+ 
+  	tmp = be32toh(up_init);
+ 	memcpy(send_pkg.data + 0, &tmp, 4);
+ 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 adjust volt set up init %d",
+ 			avalon9->drv->name, avalon9->device_id, addr, up_init);
+ 
+  	tmp = be32toh(up_factor);
+ 	memcpy(send_pkg.data + 4, &tmp, 4);
+ 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 adjust volt set up factor %d",
+ 			avalon9->drv->name, avalon9->device_id, addr, up_factor);
+ 
+  	tmp = be32toh(up_threshold);
+ 	memcpy(send_pkg.data + 8, &tmp, 4);
+ 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 adjust volt set up threshold %d",
+ 			avalon9->drv->name, avalon9->device_id, addr, up_threshold);
+ 
+  	tmp = be32toh(down_init);
+ 	memcpy(send_pkg.data + 12, &tmp, 4);
+ 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 adjust volt set down init %d",
+ 			avalon9->drv->name, avalon9->device_id, addr, down_init);
+ 
+  	tmp = be32toh(down_factor);
+ 	memcpy(send_pkg.data + 16, &tmp, 4);
+ 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 adjust volt set down factor %d",
+ 			avalon9->drv->name, avalon9->device_id, addr, down_factor);
+ 
+  	tmp = be32toh(down_threshold);
+ 	memcpy(send_pkg.data + 20, &tmp, 4);
+ 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 adjust volt set down threshold %d",
+ 			avalon9->drv->name, avalon9->device_id, addr, down_threshold);
+ 
+  	tmp = be32toh(time);
+ 	memcpy(send_pkg.data + 24, &tmp, 4);
+ 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 adjust volt set time %d",
+ 			avalon9->drv->name, avalon9->device_id, addr, time);
+
+	tmp = be32toh(enable);
+ 	memcpy(send_pkg.data + 28, &tmp, 4);
+ 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 adjust volt set enable %d",
+ 			avalon9->drv->name, avalon9->device_id, addr, time);
+ 
+  	/* Package the data */
+ 	avalon9_init_pkg(&send_pkg, AVA9_P_SET_ADJUST_VOLT, 1, 1);
+ 
+  	if (addr == AVA9_MODULE_BROADCAST)
+ 		avalon9_send_bc_pkgs(avalon9, &send_pkg);
+ 	else
+ 		avalon9_iic_xfer_pkg(avalon9, addr, &send_pkg, NULL);
+ 
+  	return;
+ }
+
+
 static void avalon9_set_voltage_level(struct cgpu_info *avalon9, int addr, unsigned int voltage[])
 {
 	struct avalon9_info *info = avalon9->device_data;
@@ -1774,8 +1858,6 @@ static void avalon9_set_freq(struct cgpu_info *avalon9, int addr, int miner_id, 
 	memcpy(send_pkg.data + AVA9_DEFAULT_PLL_CNT * 4, &tmp, 4);
 
 	miner_asic = ((miner_id & 0x07) << 5) | (asic_id & 0x1f);
-
-	applog(LOG_ERR,"******raw:%u miner:%u asic:%u", miner_asic, miner_id, asic_id);
 
 	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq miner %x-%x",
 			avalon9->drv->name, avalon9->device_id, addr,
@@ -2103,6 +2185,11 @@ static int64_t avalon9_scanhash(struct thr_info *thr)
 			for (j = 0; j < info->miner_count[i]; j++)
 				avalon9_set_freq(avalon9, i, j, 0, info->set_frequency[i][j]);
 
+			avalon9_set_adjust_voltage_option(avalon9, i, opt_avalon9_adjust_volt_up_init, \
+		opt_avalon9_adjust_volt_up_factor, opt_avalon9_adjust_volt_up_threshold, 
+		opt_avalon9_adjust_volt_down_init, opt_avalon9_adjust_volt_down_factor, \
+		opt_avalon9_adjust_volt_down_threshold, opt_avalon9_adjust_volt_time, opt_avalon9_adjust_volt_enable);
+
 			if (opt_avalon9_smart_speed)
 				avalon9_set_ss_param(avalon9, i);
 
@@ -2322,8 +2409,13 @@ static struct api_data *avalon9_api_stats(struct cgpu_info *avalon9)
 		strcat(statbuf, buf);
 
 		if (opt_debug) {
-			sprintf(buf, " FAC0[%d]", info->factory_info[i][0]);
-			strcat(statbuf, buf);
+			sprintf(buf, " FAC0[");
+ 			strcat(statbuf, buf);
+ 			for (j = 0; j < info->miner_count[i]; j++) {
+ 				sprintf(buf, "%d ", info->factory_info[i][j]);
+ 				strcat(statbuf, buf);
+ 			}
+ 			statbuf[strlen(statbuf) - 1] = ']';
 
 			sprintf(buf, " OC[%d]", info->overclocking_info[0]);
 			strcat(statbuf, buf);

@@ -37,6 +37,15 @@
 
 #define AVA9_DEFAULT_FACTORY_INFO_1_CNT	3
 
+#define AVA9_DEFAULT_AJUST_VOLT_UP_INIT 200
+#define AVA9_DEFAULT_AJUST_VOLT_UP_FACTOR 6
+#define AVA9_DEFAULT_AJUST_VOLT_UP_THRESHOLD 5180
+#define AVA9_DEFAULT_AJUST_VOLT_DOWN_INIT 0
+#define AVA9_DEFAULT_AJUST_VOLT_DOWN_FACTOR 4
+#define AVA9_DEFAULT_AJUST_VOLT_DOWN_THRESHOLD 5208
+#define AVA9_DEFAULT_AJUST_VOLT_TIME 600
+#define AVA9_DEFAULT_AJUST_VOLT_ENABLE 1
+
 #define AVA9_DEFAULT_OVERCLOCKING_OFF	0
 #define AVA9_DEFAULT_OVERCLOCKING_ON	1
 
@@ -175,7 +184,8 @@
 #define AVA9_P_STATUS_FAC		0x4d
 #define AVA9_P_STATUS_OC		0x4e
 #define AVA9_P_STATUS_PVT_RO		0x4f
-#define AVA9_P_STATUS_ASIC_PLL		0x50
+#define AVA9_P_SET_ADJUST_VOLT	0x51
+#define AVA9_P_STATUS_ASIC_PLL		0x52
 
 
 #define AVA9_MODULE_BROADCAST		0
@@ -345,6 +355,7 @@ extern char *set_avalon9_fan(char *arg);
 extern char *set_avalon9_freq(char *arg);
 extern char *set_avalon9_voltage_level(char *arg);
 extern char *set_avalon9_voltage_level_offset(char *arg);
+extern char *set_avalon9_adjust_volt_info(char *arg);
 extern int opt_avalon9_temp_target;
 extern int opt_avalon9_polling_delay;
 extern int opt_avalon9_aucspeed;
