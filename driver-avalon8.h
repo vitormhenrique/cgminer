@@ -105,7 +105,7 @@
 
 #define AVA8_AUC_VER_LEN	12	/* Version length: 12 (AUC-YYYYMMDD) */
 #define AVA8_AUC_SPEED		400000
-#define AVA8_AUC_XDELAY  	19200	/* 4800 = 1ms in AUC (11U14)  */
+#define AVA8_AUC_XDELAY  	43200	/* 4800 = 1ms in AUC (11U14)  */
 #define AVA8_AUC_P_SIZE		64
 
 #define AVA8_CONNECTER_AUC	1
