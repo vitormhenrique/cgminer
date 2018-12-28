@@ -201,7 +201,7 @@ static uint32_t encode_voltage(int volt_level)
 
 static uint32_t decode_voltage(struct avalon8_info *info, int modular_id, uint32_t volt)
 {
-	return (volt * info->vout_adc_ratio[modular_id] / info->asic_count[modular_id] / 100);
+	return (volt * info->vout_adc_ratio[modular_id] / 26 / 100);
 }
 
 static uint16_t decode_vin(struct avalon8_info *info, int modular_id, uint16_t volt)
