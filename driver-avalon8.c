@@ -760,7 +760,7 @@ static int decode_pkg(struct cgpu_info *avalon8, struct avalon8_ret *ar, int mod
 						avalon8->drv->name, avalon8->device_id, modular_id,
 						miner_id, asic_id);
 
-			for (i = 0; i < 2; i++) {
+			for (i = 0; i < 4; i++) {
 				memcpy(&tmp, ar->data + i * 8, 4);
 				info->get_asic_ecc1[modular_id][miner_id][asic_id + i] += be32toh(tmp);
 				memcpy(&tmp, ar->data + i * 8 + 4, 4);
