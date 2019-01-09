@@ -1631,18 +1631,8 @@ static int polling(struct cgpu_info *avalon9)
 				detach_module(avalon9, i);
 		}
 
-		if (ret == AVA9_SEND_OK && !decode_err) {
+		if (ret == AVA9_SEND_OK && !decode_err)
 			info->error_polling_cnt[i] = 0;
-
-			if ((ar.opt == AVA9_P_STATUS) &&
-				(info->mm_dna[i][AVA9_MM_DNA_LEN - 1] != ar.opt)) {
-				applog(LOG_ERR, "%s-%d-%d: Dup address found %d-%d",
-						avalon9->drv->name, avalon9->device_id, i,
-						info->mm_dna[i][AVA9_MM_DNA_LEN - 1], ar.opt);
-				hexdump((uint8_t *)&ar, sizeof(ar));
-				detach_module(avalon9, i);
-			}
-		}
 	}
 
 	return 0;
