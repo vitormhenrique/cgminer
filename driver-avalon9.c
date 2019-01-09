@@ -1623,6 +1623,8 @@ static int polling(struct cgpu_info *avalon9)
 		if (ret != AVA9_SEND_OK || decode_err) {
 			info->error_polling_cnt[i]++;
 			memset(send_pkg.data, 0, AVA9_P_DATA_LEN);
+			/* NOTE: fix duplicate iic address */
+			memcpy(send_pkg.data, info->mm_dna[i],  AVA9_MM_DNA_LEN);
 			avalon9_init_pkg(&send_pkg, AVA9_P_RSTMMTX, 1, 1);
 			avalon9_iic_xfer_pkg(avalon9, i, &send_pkg, NULL);
 			if (info->error_polling_cnt[i] >= 10)
