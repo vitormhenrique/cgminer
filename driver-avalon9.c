@@ -37,6 +37,15 @@ int opt_avalon9_freq[AVA9_DEFAULT_PLL_CNT] =
 	AVA9_DEFAULT_FREQUENCY
 };
 
+/* Default frequency for Fixed power */
+int opt_avalon911_freq[AVA9_DEFAULT_PLL_CNT] =
+{
+	AVA9_DEFAULT_FREQUENCY_0M,
+	AVA9_DEFAULT_FREQUENCY_475M,
+	AVA9_DEFAULT_FREQUENCY_512M,
+	AVA9_DEFAULT_FREQUENCY_550M
+};
+
 int opt_avalon9_freq_sel = AVA9_DEFAULT_FREQUENCY_SEL;
 
 int opt_avalon9_polling_delay = AVA9_DEFAULT_POLLING_DELAY;
@@ -2270,7 +2279,10 @@ static int64_t avalon9_scanhash(struct thr_info *thr)
 				update_settings = true;
 				for (j = 0; j < info->miner_count[i]; j++) {
 					for (k = 0; k < AVA9_DEFAULT_PLL_CNT; k++) {
-						if (opt_avalon9_freq[k] != AVA9_DEFAULT_FREQUENCY)
+						/* Avalon911 Fixed power and don't set freq */
+						if ((info->mm_version[i][3] != 'V') && (opt_avalon9_freq[k] == AVA9_DEFAULT_FREQUENCY))
+							info->set_frequency[i][j][k] = opt_avalon911_freq[k];
+						else if (opt_avalon9_freq[k] != AVA9_DEFAULT_FREQUENCY)
 							info->set_frequency[i][j][k] = opt_avalon9_freq[k];
 					}
 				}
