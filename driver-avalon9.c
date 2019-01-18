@@ -41,8 +41,8 @@ int opt_avalon9_freq[AVA9_DEFAULT_PLL_CNT] =
 int opt_avalon911_freq[AVA9_DEFAULT_PLL_CNT] =
 {
 	AVA9_DEFAULT_FREQUENCY_0M,
-	AVA9_DEFAULT_FREQUENCY_537M,
-	AVA9_DEFAULT_FREQUENCY_562M,
+	AVA9_DEFAULT_FREQUENCY_512M,
+	AVA9_DEFAULT_FREQUENCY_550M,
 	AVA9_DEFAULT_FREQUENCY_587M
 };
 
@@ -214,9 +214,9 @@ struct avalon9_dev_description avalon9_dev_table[] = {
 		26,
 		{
 			AVA9_DEFAULT_FREQUENCY_0M,
-			AVA9_DEFAULT_FREQUENCY_475M,
+			AVA9_DEFAULT_FREQUENCY_462M,
 			AVA9_DEFAULT_FREQUENCY_512M,
-			AVA9_DEFAULT_FREQUENCY_550M
+			AVA9_DEFAULT_FREQUENCY_562M
 		}
 	}
 };
@@ -1563,7 +1563,10 @@ static void detect_modules(struct cgpu_info *avalon9)
 		tmp = be32toh(tmp);
 		info->total_asics[i] = tmp;
 		info->temp_overheat[i] = AVA9_DEFAULT_TEMP_OVERHEAT;
-		info->temp_target[i] = opt_avalon9_temp_target;
+		if (info->mm_version[i][3] == 'V')
+			info->temp_target[i] = AVA911V_DEFAULT_TEMP_TARGET;
+		else
+			info->temp_target[i] = opt_avalon9_temp_target;
 		info->fan_pct[i] = opt_avalon9_fan_min;
 		for (j = 0; j < info->miner_count[i]; j++) {
 			if (opt_avalon9_voltage_level == AVA9_INVALID_VOLTAGE_LEVEL)
