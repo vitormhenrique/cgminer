@@ -37,6 +37,15 @@ int opt_avalon9_freq[AVA9_DEFAULT_PLL_CNT] =
 	AVA9_DEFAULT_FREQUENCY
 };
 
+/* Default frequency for Fixed power */
+int opt_avalon911_freq[AVA9_DEFAULT_PLL_CNT] =
+{
+	AVA9_DEFAULT_FREQUENCY_0M,
+	AVA9_DEFAULT_FREQUENCY_512M,
+	AVA9_DEFAULT_FREQUENCY_550M,
+	AVA9_DEFAULT_FREQUENCY_587M
+};
+
 int opt_avalon9_freq_sel = AVA9_DEFAULT_FREQUENCY_SEL;
 
 int opt_avalon9_polling_delay = AVA9_DEFAULT_POLLING_DELAY;
@@ -72,7 +81,23 @@ uint32_t opt_avalon9_pid_p = AVA9_DEFAULT_PID_P;
 uint32_t opt_avalon9_pid_i = AVA9_DEFAULT_PID_I;
 uint32_t opt_avalon9_pid_d = AVA9_DEFAULT_PID_D;
 
-uint32_t opt_avalon9_adjust_voltage = AVA9_DEFAULT_ADJUST_VOLTAGE;
+uint32_t opt_avalon9_adjust_volt_freq = AVA9_DEFAULT_ADJUST_VOLT_FREQ;
+
+int32_t opt_avalon9_adjust_volt_up_init = AVA9_DEFAULT_ADJUST_VOLT_UP_INIT;
+uint32_t opt_avalon9_adjust_volt_up_factor = AVA9_DEFAULT_ADJUST_VOLT_UP_FACTOR;
+uint32_t opt_avalon9_adjust_volt_up_threshold = AVA9_DEFAULT_ADJUST_VOLT_UP_THRESHOLD;
+int32_t opt_avalon9_adjust_volt_down_init = AVA9_DEFAULT_ADJUST_VOLT_DOWN_INIT;
+uint32_t opt_avalon9_adjust_volt_down_factor = AVA9_DEFAULT_ADJUST_VOLT_DOWN_FACTOR;
+uint32_t opt_avalon9_adjust_volt_down_threshold = AVA9_DEFAULT_ADJUST_VOLT_DOWN_THRESHOLD;
+uint32_t opt_avalon9_adjust_volt_time = AVA9_DEFAULT_ADJUST_VOLT_TIME;
+
+int32_t opt_avalon9_adjust_freq_up_init = AVA9_DEFAULT_ADJUST_FREQ_UP_INIT;
+uint32_t opt_avalon9_adjust_freq_up_factor = AVA9_DEFAULT_ADJUST_FREQ_UP_FACTOR;
+uint32_t opt_avalon9_adjust_freq_up_threshold = AVA9_DEFAULT_ADJUST_FREQ_UP_THRESHOLD;
+int32_t opt_avalon9_adjust_freq_down_init = AVA9_DEFAULT_ADJUST_FREQ_DOWN_INIT;
+uint32_t opt_avalon9_adjust_freq_down_factor = AVA9_DEFAULT_ADJUST_FREQ_DOWN_FACTOR;
+uint32_t opt_avalon9_adjust_freq_down_threshold = AVA9_DEFAULT_ADJUST_FREQ_DOWN_THRESHOLD;
+uint32_t opt_avalon9_adjust_freq_time = AVA9_DEFAULT_ADJUST_FREQ_TIME;
 
 uint32_t cpm_table[] =
 {
@@ -1538,7 +1563,10 @@ static void detect_modules(struct cgpu_info *avalon9)
 		tmp = be32toh(tmp);
 		info->total_asics[i] = tmp;
 		info->temp_overheat[i] = AVA9_DEFAULT_TEMP_OVERHEAT;
-		info->temp_target[i] = opt_avalon9_temp_target;
+		if (info->mm_version[i][3] == 'V')
+			info->temp_target[i] = AVA911V_DEFAULT_TEMP_TARGET;
+		else
+			info->temp_target[i] = opt_avalon9_temp_target;
 		info->fan_pct[i] = opt_avalon9_fan_min;
 		for (j = 0; j < info->miner_count[i]; j++) {
 			if (opt_avalon9_voltage_level == AVA9_INVALID_VOLTAGE_LEVEL)
@@ -1819,11 +1847,11 @@ static void avalon9_set_voltage_level(struct cgpu_info *avalon9, int addr, unsig
 			avalon9->drv->name, avalon9->device_id, addr,
 			i, voltage[0], voltage[info->miner_count[addr] - 1]);
 
-	tmp = be32toh(opt_avalon9_adjust_voltage);
+	tmp = be32toh(opt_avalon9_adjust_volt_freq);
 	memcpy(send_pkg.data + 24, &tmp, 4);
-	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set adjust voltage %u",
+	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set adjust voltage and frequency %u",
 			avalon9->drv->name, avalon9->device_id, addr,
-			opt_avalon9_adjust_voltage);
+			opt_avalon9_adjust_volt_freq);
 
 	/* Package the data */
 	avalon9_init_pkg(&send_pkg, AVA9_P_SET_VOLT, 1, 1);
@@ -2057,6 +2085,63 @@ static void avalon9_set_adjust_voltage_option(struct cgpu_info *avalon9, int add
 	return;
 }
 
+static void avalon9_set_adjust_freq_option(struct cgpu_info *avalon9, int addr,
+						int32_t freq_up_init, uint32_t freq_up_factor, uint32_t freq_up_threshold,
+						int32_t freq_down_init, uint32_t freq_down_factor, uint32_t freq_down_threshold,
+						uint32_t freq_time)
+{
+	struct avalon9_info *info = avalon9->device_data;
+	struct avalon9_pkg send_pkg;
+	int32_t tmp;
+
+	memset(send_pkg.data, 0, AVA9_P_DATA_LEN);
+
+	tmp = be32toh(freq_up_init);
+	memcpy(send_pkg.data + 0, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq up init %d",
+			avalon9->drv->name, avalon9->device_id, addr, freq_up_init);
+
+	tmp = be32toh(freq_up_factor);
+	memcpy(send_pkg.data + 4, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq up factor %d",
+			avalon9->drv->name, avalon9->device_id, addr, freq_up_factor);
+
+	tmp = be32toh(freq_up_threshold);
+	memcpy(send_pkg.data + 8, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq up threshold %d",
+			avalon9->drv->name, avalon9->device_id, addr, freq_up_threshold);
+
+	tmp = be32toh(freq_down_init);
+	memcpy(send_pkg.data + 12, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq down init %d",
+			avalon9->drv->name, avalon9->device_id, addr, freq_down_init);
+
+	tmp = be32toh(freq_down_factor);
+	memcpy(send_pkg.data + 16, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq down factor %d",
+			avalon9->drv->name, avalon9->device_id, addr, freq_down_factor);
+
+	tmp = be32toh(freq_down_threshold);
+	memcpy(send_pkg.data + 20, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq down threshold %d",
+			avalon9->drv->name, avalon9->device_id, addr, freq_down_threshold);
+
+	tmp = be32toh(freq_time);
+	memcpy(send_pkg.data + 24, &tmp, 4);
+	applog(LOG_DEBUG, "%s-%d-%d: avalon9 set freq time %d",
+			avalon9->drv->name, avalon9->device_id, addr, freq_time);
+
+	/* Package the data */
+	avalon9_init_pkg(&send_pkg, AVA9_P_SET_ADJUST_FREQ, 1, 1);
+
+	if (addr == AVA9_MODULE_BROADCAST)
+		avalon9_send_bc_pkgs(avalon9, &send_pkg);
+	else
+		avalon9_iic_xfer_pkg(avalon9, addr, &send_pkg, NULL);
+
+	return;
+}
+
 static void avalon9_stratum_finish(struct cgpu_info *avalon9)
 {
 	struct avalon9_pkg send_pkg;
@@ -2197,7 +2282,10 @@ static int64_t avalon9_scanhash(struct thr_info *thr)
 				update_settings = true;
 				for (j = 0; j < info->miner_count[i]; j++) {
 					for (k = 0; k < AVA9_DEFAULT_PLL_CNT; k++) {
-						if (opt_avalon9_freq[k] != AVA9_DEFAULT_FREQUENCY)
+						/* Avalon911 Fixed power and don't set freq */
+						if ((info->mm_version[i][3] != 'V') && (opt_avalon9_freq[k] == AVA9_DEFAULT_FREQUENCY))
+							info->set_frequency[i][j][k] = opt_avalon911_freq[k];
+						else if (opt_avalon9_freq[k] != AVA9_DEFAULT_FREQUENCY)
 							info->set_frequency[i][j][k] = opt_avalon9_freq[k];
 					}
 				}
@@ -2219,6 +2307,27 @@ static int64_t avalon9_scanhash(struct thr_info *thr)
 		if (update_settings) {
 			cg_wlock(&info->update_lock);
 			avalon9_set_voltage_level(avalon9, i, info->set_voltage_level[i]);
+
+			avalon9_set_adjust_voltage_option(avalon9, i,
+								opt_avalon9_adjust_volt_up_init,
+								opt_avalon9_adjust_volt_up_factor,
+								opt_avalon9_adjust_volt_up_threshold,
+								opt_avalon9_adjust_volt_down_init,
+								opt_avalon9_adjust_volt_down_factor,
+								opt_avalon9_adjust_volt_down_threshold,
+								opt_avalon9_adjust_volt_time);
+
+			avalon9_set_adjust_freq_option(avalon9, i,
+								opt_avalon9_adjust_freq_up_init,
+								opt_avalon9_adjust_freq_up_factor,
+								opt_avalon9_adjust_freq_up_threshold,
+								opt_avalon9_adjust_freq_down_init,
+								opt_avalon9_adjust_freq_down_factor,
+								opt_avalon9_adjust_freq_down_threshold,
+								opt_avalon9_adjust_freq_time);
+
+
+
 			avalon9_set_asic_otp(avalon9, i, info->set_asic_otp[i]);
 			for (j = 0; j < info->miner_count[i]; j++)
 				avalon9_set_freq(avalon9, i, j, 0, info->set_frequency[i][j]);
@@ -2805,6 +2914,40 @@ char *set_avalon9_overclocking_info(struct cgpu_info *avalon9, char *arg)
 
 	applog(LOG_NOTICE, "%s-%d: Update Overclocking info %d",
 		avalon9->drv->name, avalon9->device_id, val);
+
+	return NULL;
+}
+
+char *set_avalon9_adjust_volt_info(char *arg)
+{
+	int ret;
+
+	ret = sscanf(arg, "%d-%d-%d-%d-%d-%d-%d", &opt_avalon9_adjust_volt_up_init,
+						&opt_avalon9_adjust_volt_up_factor,
+						&opt_avalon9_adjust_volt_up_threshold,
+						&opt_avalon9_adjust_volt_down_init,
+						&opt_avalon9_adjust_volt_down_factor,
+						&opt_avalon9_adjust_volt_down_threshold,
+						&opt_avalon9_adjust_volt_time);
+	if (ret < 1)
+		return "Invalid value for adjust volt info";
+
+	return NULL;
+}
+
+char *set_avalon9_adjust_freq_info(char *arg)
+{
+	int ret;
+
+	ret = sscanf(arg, "%d-%d-%d-%d-%d-%d-%d", &opt_avalon9_adjust_freq_up_init,
+						&opt_avalon9_adjust_freq_up_factor,
+						&opt_avalon9_adjust_freq_up_threshold,
+						&opt_avalon9_adjust_freq_down_init,
+						&opt_avalon9_adjust_freq_down_factor,
+						&opt_avalon9_adjust_freq_down_threshold,
+						&opt_avalon9_adjust_freq_time);
+	if (ret < 1)
+		return "Invalid value for adjust freq info";
 
 	return NULL;
 }

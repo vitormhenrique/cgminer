@@ -23,7 +23,8 @@
 
 #define AVA9_DEFAULT_TEMP_MIN		0
 #define AVA9_DEFAULT_TEMP_MAX		100
-#define AVA9_DEFAULT_TEMP_TARGET	80
+#define AVA9_DEFAULT_TEMP_TARGET	82
+#define AVA911V_DEFAULT_TEMP_TARGET	81
 #define AVA9_DEFAULT_TEMP_OVERHEAT	105
 
 #define AVA9_DEFAULT_VOLTAGE_LEVEL_MIN	0
@@ -49,11 +50,13 @@
 
 #define AVA9_DEFAULT_FREQUENCY_0M	0
 #define AVA9_DEFAULT_FREQUENCY_450M	450
-#define AVA9_DEFAULT_FREQUENCY_500M	500
-#define AVA9_DEFAULT_FREQUENCY_550M	550
 #define AVA9_DEFAULT_FREQUENCY_462M	462
+#define AVA9_DEFAULT_FREQUENCY_475M	475
+#define AVA9_DEFAULT_FREQUENCY_500M	500
 #define AVA9_DEFAULT_FREQUENCY_512M	512
+#define AVA9_DEFAULT_FREQUENCY_550M	550
 #define AVA9_DEFAULT_FREQUENCY_562M	562
+#define AVA9_DEFAULT_FREQUENCY_587M	587
 #define AVA9_DEFAULT_FREQUENCY_MAX	1200
 #define AVA9_DEFAULT_FREQUENCY		(AVA9_DEFAULT_FREQUENCY_MAX)
 #define AVA9_DEFAULT_FREQUENCY_SEL	3
@@ -71,12 +74,12 @@
 #define AVA9_DEFAULT_SMARTSPEED_MODE1	1
 #define AVA9_DEFAULT_SMART_SPEED	(AVA9_DEFAULT_SMARTSPEED_MODE1)
 
-#define AVA9_DEFAULT_TH_PASS		150
-#define AVA9_DEFAULT_TH_FAIL		17000
+#define AVA9_DEFAULT_TH_PASS		10
+#define AVA9_DEFAULT_TH_FAIL		1000
 #define AVA9_DEFAULT_TH_INIT		32767
 #define AVA9_DEFAULT_TH_ADD		0
-#define AVA9_DEFAULT_TH_MS		12
-#define AVA9_DEFAULT_TH_TIMEOUT		385000
+#define AVA9_DEFAULT_TH_MS		2
+#define AVA9_DEFAULT_TH_TIMEOUT		1550000
 #define AVA9_DEFAULT_NONCE_MASK 	24
 #define AVA9_DEFAULT_NONCE_CHECK	1
 #define AVA9_DEFAULT_MUX_L2H		0
@@ -94,7 +97,23 @@
 #define AVA9_DEFAULT_PID_TEMP_MIN	50
 #define AVA9_DEFAULT_PID_TEMP_MAX	100
 
-#define AVA9_DEFAULT_ADJUST_VOLTAGE	1
+#define AVA9_DEFAULT_ADJUST_VOLT_FREQ	1
+
+#define AVA9_DEFAULT_ADJUST_VOLT_UP_INIT 	20000
+#define AVA9_DEFAULT_ADJUST_VOLT_UP_FACTOR 	6
+#define AVA9_DEFAULT_ADJUST_VOLT_UP_THRESHOLD 	18300
+#define AVA9_DEFAULT_ADJUST_VOLT_DOWN_INIT 	0
+#define AVA9_DEFAULT_ADJUST_VOLT_DOWN_FACTOR 	4
+#define AVA9_DEFAULT_ADJUST_VOLT_DOWN_THRESHOLD	18656
+#define AVA9_DEFAULT_ADJUST_VOLT_TIME 		900
+
+#define AVA9_DEFAULT_ADJUST_FREQ_UP_INIT 	0
+#define AVA9_DEFAULT_ADJUST_FREQ_UP_FACTOR 	4
+#define AVA9_DEFAULT_ADJUST_FREQ_UP_THRESHOLD 	5000
+#define AVA9_DEFAULT_ADJUST_FREQ_DOWN_INIT 	4000
+#define AVA9_DEFAULT_ADJUST_FREQ_DOWN_FACTOR 	6
+#define AVA9_DEFAULT_ADJUST_FREQ_DOWN_THRESHOLD	2700
+#define AVA9_DEFAULT_ADJUST_FREQ_TIME 		900
 
 #define AVA9_DEFAULT_ASIC_AVERAGE_TEMP_START	12
 #define AVA9_DEFAULT_ASIC_AVERAGE_TEMP_END	21
@@ -175,6 +194,7 @@
 #define AVA9_P_STATUS_OTP	0x4f
 #define AVA9_P_SET_ASIC_OTP	0x50
 #define AVA9_P_SET_ADJUST_VOLT	0x51
+#define AVA9_P_SET_ADJUST_FREQ	0x52
 
 #define AVA9_MODULE_BROADCAST	0
 /* End of avalon9 protocol package type */
@@ -349,6 +369,8 @@ extern char *set_avalon9_fan(char *arg);
 extern char *set_avalon9_freq(char *arg);
 extern char *set_avalon9_voltage_level(char *arg);
 extern char *set_avalon9_voltage_level_offset(char *arg);
+extern char *set_avalon9_adjust_volt_info(char *arg);
+extern char *set_avalon9_adjust_freq_info(char *arg);
 extern char *set_avalon9_asic_otp(char *arg);
 extern int opt_avalon9_temp_target;
 extern int opt_avalon9_polling_delay;
@@ -375,7 +397,7 @@ extern uint32_t opt_avalon9_tbase;
 extern uint32_t opt_avalon9_pid_p;
 extern uint32_t opt_avalon9_pid_i;
 extern uint32_t opt_avalon9_pid_d;
-extern uint32_t opt_avalon9_adjust_voltage;
+extern uint32_t opt_avalon9_adjust_volt_freq;
 
 #endif /* USE_AVALON9 */
 #endif /* _AVALON9_H_ */
