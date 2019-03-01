@@ -167,6 +167,8 @@
 #define AVA9_P_SET_FAC			0x28
 #define AVA9_P_SET_OC			0x29
 
+#define AVA9_P_SET_SS_PARA_EN		0x2b
+
 /* Have to send with I2C address */
 #define AVA9_P_POLLING			0x30
 #define AVA9_P_SYNC   			0x31
@@ -190,6 +192,7 @@
 #define AVA9_P_STATUS_PVT_RO		0x4f
 #define AVA9_P_SET_ADJUST_VOLT	0x51
 #define AVA9_P_STATUS_ASIC_PLL		0x52
+#define AVA9_P_STATUS_SS_PARA		0x53
 
 
 #define AVA9_MODULE_BROADCAST		0
@@ -344,6 +347,9 @@ struct avalon9_info {
 
 	uint16_t vin_adc_ratio[AVA9_DEFAULT_MODULARS];
 	uint16_t vout_adc_ratio[AVA9_DEFAULT_MODULARS];
+
+	uint8_t ss_para_en[AVA9_DEFAULT_MODULARS];
+	uint8_t ss_para_target_temp[AVA9_DEFAULT_MODULARS];
 
 	bool conn_overloaded;
 };
