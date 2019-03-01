@@ -176,7 +176,7 @@ struct avalon9_dev_description avalon9_dev_table[] = {
 		26,
 		AVA9_MM921_VIN_ADC_RATIO,
 		AVA9_MM921_VOUT_ADC_RATIO,
-		5,
+		8,
 		{
 			AVA9_DEFAULT_FREQUENCY_0M,
 			AVA9_DEFAULT_FREQUENCY_0M,
@@ -184,7 +184,7 @@ struct avalon9_dev_description avalon9_dev_table[] = {
 			AVA9_DEFAULT_FREQUENCY_0M,
 			AVA9_DEFAULT_FREQUENCY_0M,
 			AVA9_DEFAULT_FREQUENCY_775M,
-			AVA9_DEFAULT_FREQUENCY_800M
+			AVA9_DEFAULT_FREQUENCY_787M
 		}
 	},
 	{
@@ -504,6 +504,9 @@ static inline uint32_t adjust_fan(struct avalon9_info *info, int id)
 	double delta_p, delta_i, delta_d;
 	uint32_t pwm;
 
+	if(info->ss_para_en[id])
+		info->temp_target[id] = info->ss_para_target_temp[id];
+
 	t = get_temp_max(info, id);
 
 	/* update target error */
@@ -802,6 +805,12 @@ static int decode_pkg(struct cgpu_info *avalon9, struct avalon9_ret *ar, int mod
 	case AVA9_P_STATUS_OC:
 		applog(LOG_DEBUG, "%s-%d-%d: AVA9_P_STATUS_OC", avalon9->drv->name, avalon9->device_id, modular_id);
 		info->overclocking_info[0] = ar->data[0];
+		break;
+	case AVA9_P_STATUS_SS_PARA:
+		applog(LOG_DEBUG, "%s-%d-%d: AVA9_P_STATUS_SS_PARA", avalon9->drv->name, avalon9->device_id, modular_id);
+		info->ss_para_en[modular_id] = ar->data[0];
+		if(info->ss_para_en[modular_id])
+			info->ss_para_target_temp[modular_id] = ar->data[1];
 		break;
 	default:
 		applog(LOG_DEBUG, "%s-%d-%d: Unknown response %x", avalon9->drv->name, avalon9->device_id, modular_id, ar->type);
@@ -2029,6 +2038,22 @@ static void avalon9_set_ss_param(struct cgpu_info *avalon9, int addr)
 		avalon9_iic_xfer_pkg(avalon9, addr, &send_pkg, NULL);
 }
 
+static void avalon9_set_ss_param_en(struct cgpu_info *avalon9, int addr, uint8_t en)
+{
+	struct avalon9_pkg send_pkg;
+
+	memset(send_pkg.data, 0, AVA9_P_DATA_LEN);
+
+	send_pkg.data[0] = en;
+
+	/* Package the data */
+	avalon9_init_pkg(&send_pkg, AVA9_P_SET_SS_PARA_EN, 1, 1);
+	if (addr == AVA9_MODULE_BROADCAST)
+		avalon9_send_bc_pkgs(avalon9, &send_pkg);
+	else
+		avalon9_iic_xfer_pkg(avalon9, addr, &send_pkg, NULL);
+}
+
 static void avalon9_stratum_finish(struct cgpu_info *avalon9)
 {
 	struct avalon9_pkg send_pkg;
@@ -2449,6 +2474,9 @@ static struct api_data *avalon9_api_stats(struct cgpu_info *avalon9)
 			sprintf(buf, " OC[%d]", info->overclocking_info[0]);
 			strcat(statbuf, buf);
 
+			sprintf(buf, " SSPE[%d]", info->ss_para_en[i]);
+			strcat(statbuf, buf);
+
 			for (j = 0; j < info->miner_count[i]; j++) {
 				sprintf(buf, " SF%d[", j);
 				strcat(statbuf, buf);
@@ -2819,6 +2847,32 @@ char *set_avalon9_overclocking_info(struct cgpu_info *avalon9, char *arg)
 	return NULL;
 }
 
+char *set_avalon9_ss_param_en(struct cgpu_info *avalon9, char *arg)
+{
+	struct avalon9_info *info = avalon9->device_data;
+	int val, i;
+
+	if (!(*arg))
+		return NULL;
+
+	sscanf(arg, "%d", &val);
+
+	if ((val != 0) && (val != 1))
+		return "Invalid value passed to set_avalon9_ss_param_en";
+
+	for (i = 1; i < AVA9_DEFAULT_MODULARS; i++) {
+		if (!info->enable[i])
+			continue;
+
+		avalon9_set_ss_param_en(avalon9, i, val);
+	}
+
+	applog(LOG_NOTICE, "%s-%d: Update ss param enable %d",
+			avalon9->drv->name, avalon9->device_id, val);
+
+	return NULL;
+}
+
 static char *avalon9_set_device(struct cgpu_info *avalon9, char *option, char *setting, char *replybuf)
 {
 	unsigned int val;
@@ -2956,6 +3010,15 @@ static char *avalon9_set_device(struct cgpu_info *avalon9, char *option, char *s
 		}
 
 		return set_avalon9_overclocking_info(avalon9, setting);
+	}
+
+	if (strcasecmp(option, "ss-param-en") == 0) {
+		if (!setting || !*setting) {
+			sprintf(replybuf, "missing ss-param-en value");
+			return replybuf;
+		}
+
+		return set_avalon9_ss_param_en(avalon9, setting);
 	}
 
 	sprintf(replybuf, "Unknown option: %s", option);
