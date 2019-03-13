@@ -188,6 +188,24 @@ struct avalon9_dev_description avalon9_dev_table[] = {
 		}
 	},
 	{
+		"920P",
+		920,
+		4,
+		26,
+		AVA9_MM921_VIN_ADC_RATIO,
+		AVA9_MM921_VOUT_ADC_RATIO,
+		8,
+		{
+			AVA9_DEFAULT_FREQUENCY_0M,
+			AVA9_DEFAULT_FREQUENCY_0M,
+			AVA9_DEFAULT_FREQUENCY_0M,
+			AVA9_DEFAULT_FREQUENCY_0M,
+			AVA9_DEFAULT_FREQUENCY_0M,
+			AVA9_DEFAULT_FREQUENCY_775M,
+			AVA9_DEFAULT_FREQUENCY_787M
+		}
+	},
+	{
 		"920",
 		920,
 		4,
@@ -1487,7 +1505,8 @@ static void detect_modules(struct cgpu_info *avalon9)
 		memcpy(info->mm_version[i], ret_pkg.data + AVA9_MM_DNA_LEN, AVA9_MM_VER_LEN);
 		info->mm_version[i][AVA9_MM_VER_LEN] = '\0';
 		for (dev_index = 0; dev_index < (sizeof(avalon9_dev_table) / sizeof(avalon9_dev_table[0])); dev_index++) {
-			if (!strncmp((char *)&(info->mm_version[i]), (char *)(avalon9_dev_table[dev_index].dev_id_str), 3)) {
+			if (!strncmp((char *)&(info->mm_version[i]), (char *)(avalon9_dev_table[dev_index].dev_id_str), 3) ||
+				!strncmp((char *)&(info->mm_version[i]), (char *)(avalon9_dev_table[dev_index].dev_id_str), 4)) {
 				info->mod_type[i] = avalon9_dev_table[dev_index].mod_type;
 				info->miner_count[i] = avalon9_dev_table[dev_index].miner_count;
 				info->asic_count[i] = avalon9_dev_table[dev_index].asic_count;
@@ -2203,7 +2222,9 @@ static int64_t avalon9_scanhash(struct thr_info *thr)
 					}
 				}
 
-				if (!strncmp((char *)&(info->mm_version[i]), "921", 3)) {
+				if (!strncmp((char *)&(info->mm_version[i]), "921", 3) ||
+					(!strncmp((char *)&(info->mm_version[i]), "920", 3) &&
+					(info->mm_version[i][3] == 'P'))) {
 					if (opt_avalon9_spdlow == AVA9_INVALID_SPDLOW)
 						opt_avalon9_spdlow = AVA9_DEFAULT_MM921_SPDLOW;
 				} else if (!strncmp((char *)&(info->mm_version[i]), "920", 3)) {
@@ -2795,14 +2816,16 @@ char *set_avalon9_factory_info(struct cgpu_info *avalon9, char *arg)
 {
 	struct avalon9_info *info = avalon9->device_data;
 	char type[AVA9_DEFAULT_FACTORY_INFO_1_CNT];
+	char type_plus[AVA9_DEFAULT_FACTORY_INFO_2_CNT];
 	int val, i;
 
 	if (!(*arg))
 		return NULL;
 
 	memset(type, 0, AVA9_DEFAULT_FACTORY_INFO_1_CNT);
+	memset(type_plus, 0, AVA9_DEFAULT_FACTORY_INFO_1_CNT);
 
-	sscanf(arg, "%d-%s", &val, type);
+	sscanf(arg, "%d-%[^-]-%[^-]", &val, type, type_plus);
 
 	if ((val != AVA9_DEFAULT_FACTORY_INFO_0_IGNORE) &&
 				(val < AVA9_DEFAULT_FACTORY_INFO_0_MIN || val > AVA9_DEFAULT_FACTORY_INFO_0_MAX))
@@ -2815,6 +2838,7 @@ char *set_avalon9_factory_info(struct cgpu_info *avalon9, char *arg)
 		info->factory_info[i][0] = val;
 
 		memcpy(&info->factory_info[i][1], type, AVA9_DEFAULT_FACTORY_INFO_1_CNT);
+		memcpy(&info->factory_info[i][4], type_plus, AVA9_DEFAULT_FACTORY_INFO_2_CNT);
 
 		avalon9_set_factory_info(avalon9, i, (uint8_t *)info->factory_info[i]);
 	}
