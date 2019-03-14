@@ -2636,17 +2636,39 @@ char *set_avalon8_device_voltage_level(struct cgpu_info *avalon8, char *arg)
  */
 char *set_avalon8_device_freq(struct cgpu_info *avalon8, char *arg)
 {
+	int val[AVA8_DEFAULT_PLL_CNT];
+	char *colon, *data;
 	struct avalon8_info *info = avalon8->device_data;
-	unsigned int val, addr = 0, i, j, k;
+	unsigned int addr = 0, i, j, k;
 	uint32_t miner_id = 0;
 
 	if (!(*arg))
 		return NULL;
 
-	sscanf(arg, "%d-%d-%d", &val, &addr, &miner_id);
+	sscanf(arg, "%d-%d-%d", &data, &addr, &miner_id);
+	memset(val, 0, sizeof(val));
 
-	if (val > AVA8_DEFAULT_FREQUENCY_MAX)
-		return "Invalid value passed to set_avalon8_device_freq";
+	for (i = 0; i < AVA8_DEFAULT_PLL_CNT; i++) {
+		colon = strchr(data, ':');
+		if (colon)
+			*(colon++) = '\0';
+		else {
+			/* last value */
+			if (*data) {
+				val[i] = atoi(data);
+				if (val[i] > AVA8_DEFAULT_FREQUENCY_MAX)
+					return "Invalid value passed to set_avalon8_device_freq";
+			}
+			break;
+		}
+
+		if (*data) {
+			val[i] = atoi(data);
+			if (val[i] > AVA8_DEFAULT_FREQUENCY_MAX)
+				return "Invalid value passed to set_avalon8_device_freq";
+		}
+		data = colon;
+	}
 
 	if (addr >= AVA8_DEFAULT_MODULARS) {
 		applog(LOG_ERR, "invalid modular index: %d, valid range 0-%d", addr, (AVA8_DEFAULT_MODULARS - 1));
@@ -2665,13 +2687,13 @@ char *set_avalon8_device_freq(struct cgpu_info *avalon8, char *arg)
 
 			if (miner_id) {
 				for (k = 0; k < AVA8_DEFAULT_PLL_CNT; k++)
-					info->set_frequency[i][miner_id - 1][k] = val;
+					info->set_frequency[i][miner_id - 1][k] = val[k];
 
 				avalon8_set_freq(avalon8, i, miner_id - 1, info->set_frequency[i][miner_id - 1]);
 			} else {
 				for (j = 0; j < info->miner_count[i]; j++) {
 					for (k = 0; k < AVA8_DEFAULT_PLL_CNT; k++)
-						info->set_frequency[i][j][k] = val;
+						info->set_frequency[i][j][k] = val[k];
 
 					avalon8_set_freq(avalon8, i, j, info->set_frequency[i][j]);
 				}
@@ -2690,14 +2712,14 @@ char *set_avalon8_device_freq(struct cgpu_info *avalon8, char *arg)
 
 		if (miner_id) {
 			for (k = 0; k < AVA8_DEFAULT_PLL_CNT; k++)
-				info->set_frequency[addr][miner_id - 1][k] = val;
+				info->set_frequency[addr][miner_id - 1][k] = val[k];
 
 			avalon8_set_freq(avalon8, addr, miner_id - 1, info->set_frequency[addr][miner_id - 1]);
 
 		} else {
 			for (j = 0; j < info->miner_count[addr]; j++) {
 				for (k = 0; k < AVA8_DEFAULT_PLL_CNT; k++)
-					info->set_frequency[addr][j][k] = val;
+					info->set_frequency[addr][j][k] = val[k];
 
 				avalon8_set_freq(avalon8, addr, j, info->set_frequency[addr][j]);
 			}
@@ -2705,7 +2727,7 @@ char *set_avalon8_device_freq(struct cgpu_info *avalon8, char *arg)
 	}
 
 	applog(LOG_NOTICE, "%s-%d: Update frequency to %d",
-		avalon8->drv->name, avalon8->device_id, val);
+		avalon8->drv->name, avalon8->device_id, data);
 
 	return NULL;
 }
